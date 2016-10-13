@@ -222,9 +222,9 @@ case class FileSourceScanExec(
 
     relation.bucketSpec match {
       case Some(bucketing) if relation.sparkSession.sessionState.conf.bucketingEnabled =>
-        createBucketedReadRDD(bucketing, readFile, selectedPartitions, relation)
+        createBucketedReadRDD(bucketing, readFile, filteredPartitions, relation)
       case _ =>
-        createNonBucketedReadRDD(readFile, selectedPartitions, relation)
+        createNonBucketedReadRDD(readFile, filteredPartitions, relation)
     }
   }
 
