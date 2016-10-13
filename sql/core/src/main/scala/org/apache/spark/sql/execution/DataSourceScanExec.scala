@@ -189,6 +189,27 @@ case class FileSourceScanExec(
   private lazy val inputRDD: RDD[InternalRow] = {
     val selectedPartitions = relation.location.listFiles(partitionFilters)
 
+    val hadoopConf = relation.sparkSession.sessionState.newHadoopConfWithOptions(relation.options)
+
+    val customFileFilterClazzName = hadoopConf.get("spark.sql.customFileFilter") //todo: select a correct config name
+
+    val filteredPartitions = if (customFileFilterClazzName == null) {
+      logInfo(s"No custom file filter detected")
+      selectedPartitions
+    } else {
+      logInfo(s"Custom file filter detected")
+      val fileFilter = hadoopConf.getInstances(customFileFilterClazzName, classOf[CustomFileFilter])
+        .get(0)
+      val tmpFilteredPartitions = selectedPartitions.map { part => Partition(part.values, part.files.filter { f =>
+        fileFilter.isRequired(dataFilters, f)
+        })
+      }.filter(_.files.nonEmpty)
+      val selectedPartitionsFileCount = selectedPartitions.map(_.files.size).sum
+      val filteredPartitionsFileCount = tmpFilteredPartitions.map(_.files.size).sum
+      logInfo(s"selected $filteredPartitionsFileCount out of $selectedPartitionsFileCount files ")
+      tmpFilteredPartitions
+    }
+
     val readFile: (PartitionedFile) => Iterator[InternalRow] =
       relation.fileFormat.buildReaderWithPartitionValues(
         sparkSession = relation.sparkSession,
@@ -197,7 +218,7 @@ case class FileSourceScanExec(
         requiredSchema = outputSchema,
         filters = dataFilters,
         options = relation.options,
-        hadoopConf = relation.sparkSession.sessionState.newHadoopConfWithOptions(relation.options))
+        hadoopConf = hadoopConf)
 
     relation.bucketSpec match {
       case Some(bucketing) if relation.sparkSession.sessionState.conf.bucketingEnabled =>

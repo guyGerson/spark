@@ -506,3 +506,7 @@ object HadoopFsRelation extends Logging {
     mutable.LinkedHashSet(hadoopFakeStatuses: _*)
   }
 }
+
+trait CustomFileFilter {
+  def isRequired(dataFilters: Seq[Filter], f: FileStatus) : Boolean
+}
