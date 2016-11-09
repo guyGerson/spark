@@ -198,9 +198,9 @@ case class FileSourceScanExec(
       selectedPartitions
     } else {
       logInfo(s"Custom file filter detected")
-      val fileFilter = hadoopConf.getInstances(customFileFilterClazzName, classOf[CustomFileFilter])
-        .get(0)
-      val tmpFilteredPartitions = selectedPartitions.map { part => Partition(part.values, part.files.filter { f =>
+      val fileFilter = hadoopConf.getInstances(customFileFilterClazzName, classOf[CustomFileFilter]).get(0)
+      val tmpFilteredPartitions = selectedPartitions.map { part =>
+        Partition(part.values, part.files.filter { f =>
         fileFilter.isRequired(dataFilters, f)
         })
       }.filter(_.files.nonEmpty)
