@@ -18,12 +18,11 @@
 package org.apache.spark.sql.execution
 
 import scala.collection.mutable.ArrayBuffer
-
 import org.apache.commons.lang3.StringUtils
 import org.apache.hadoop.fs.{BlockLocation, FileStatus, LocatedFileStatus, Path}
-
+import org.apache.hadoop.util.ReflectionUtils
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Row, SparkSession, SQLContext}
+import org.apache.spark.sql.{Row, SQLContext, SparkSession}
 import org.apache.spark.sql.catalyst.{InternalRow, TableIdentifier}
 import org.apache.spark.sql.catalyst.catalog.BucketSpec
 import org.apache.spark.sql.catalyst.expressions._
@@ -191,14 +190,15 @@ case class FileSourceScanExec(
 
     val hadoopConf = relation.sparkSession.sessionState.newHadoopConfWithOptions(relation.options)
 
-    val customFileFilterClazzName = hadoopConf.get("spark.sql.customFileFilter") //todo: select a correct config name
+    val filterClazzName = hadoopConf.get("spark.sql.customFileFilter")
 
-    val filteredPartitions = if (customFileFilterClazzName == null) {
+    val filteredPartitions = if (filterClazzName == null) {
       logInfo(s"No custom file filter detected")
       selectedPartitions
     } else {
-      logInfo(s"Custom file filter detected")
-      val fileFilter = hadoopConf.getInstances(customFileFilterClazzName, classOf[CustomFileFilter]).get(0)
+      logInfo(s"Custom file filter detected: $filterClazzName")
+      val fileFilter = ReflectionUtils.newInstance(Class.forName(filterClazzName), hadoopConf)
+        .asInstanceOf[CustomFileFilter]
       val tmpFilteredPartitions = selectedPartitions.map { part =>
         Partition(part.values, part.files.filter { f =>
         fileFilter.isRequired(dataFilters, f)
