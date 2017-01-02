@@ -636,6 +636,16 @@ object SQLConf {
     .booleanConf
     .createWithDefault(false)
 
+  val EXECUTION_FILE_FILTER =
+    SQLConfigBuilder("spark.sql.execution.fileFilter")
+    .doc("Pluggable interface, allowing applications to add custom filtration logic," +
+      "reducing the files required to scan during query execution. The filtration" +
+      " happens after the partition pruning step, and so complimentry enabling enabling" +
+      "a finer selection.")
+    .stringConf
+    .createWithDefault("")
+
+
   object Deprecated {
     val MAPRED_REDUCE_TASKS = "mapred.reduce.tasks"
   }
@@ -830,6 +840,9 @@ private[sql] class SQLConf extends Serializable with CatalystConf with Logging {
   override def crossJoinEnabled: Boolean = getConf(SQLConf.CROSS_JOINS_ENABLED)
 
   def ndvMaxError: Double = getConf(NDV_MAX_ERROR)
+
+  def executionFileFilter: String = getConf(EXECUTION_FILE_FILTER)
+
   /** ********************** SQLConf functionality methods ************ */
 
   /** Set Spark SQL configuration properties. */
