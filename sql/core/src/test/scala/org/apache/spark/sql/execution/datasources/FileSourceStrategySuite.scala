@@ -24,13 +24,14 @@ import java.util.zip.GZIPOutputStream
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{BlockLocation, FileStatus, Path, RawLocalFileSystem}
 import org.apache.hadoop.mapreduce.Job
+
 import org.apache.spark.{SparkConf, SparkException}
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.catalog.BucketSpec
 import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionSet, PredicateHelper}
 import org.apache.spark.sql.catalyst.util
-import org.apache.spark.sql.execution.{ExecutionFileFilter, DataSourceScanExec, SparkPlan}
+import org.apache.spark.sql.execution.{DataSourceScanExec, ExecutionFileFilter, SparkPlan}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources._
@@ -493,7 +494,7 @@ class FileSourceStrategySuite extends QueryTest with SharedSQLContext with Predi
           "file1" -> 1,
           "file2" -> 1))
 
-    //set file filter that should select only file1
+    // set file filter that should select only file1
     withSQLConf(
       SQLConf.EXECUTION_FILE_FILTER.key -> classOf[TestFileFilter].getName) {
       // Only one file should be read.
@@ -676,5 +677,6 @@ class MockDistributedFileSystem extends RawLocalFileSystem {
 
 // File Filter that selects only files with "1" in their path to be read during scan
 class TestFileFilter extends ExecutionFileFilter {
-  override def isRequired(dataFilters: Seq[Filter], f: FileStatus): Boolean = f.getPath().getName().contains("1")
+  override def isRequired(dataFilters: Seq[Filter], f: FileStatus): Boolean =
+    f.getPath().getName().contains("1")
 }

@@ -18,8 +18,10 @@
 package org.apache.spark.sql.execution
 
 import scala.collection.mutable.ArrayBuffer
+
 import org.apache.commons.lang3.StringUtils
 import org.apache.hadoop.fs.{BlockLocation, FileStatus, LocatedFileStatus, Path}
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{AnalysisException, SparkSession}
 import org.apache.spark.sql.catalyst.{InternalRow, TableIdentifier}
@@ -35,8 +37,6 @@ import org.apache.spark.sql.sources.{BaseRelation, Filter}
 import org.apache.spark.sql.types.{DataType, StructType}
 import org.apache.spark.util.Utils
 
-import scala.reflect.runtime.ReflectionUtils
-
 trait DataSourceScanExec extends LeafExecNode with CodegenSupport {
   val relation: BaseRelation
   val metastoreTableIdentifier: Option[TableIdentifier]
@@ -47,18 +47,18 @@ trait DataSourceScanExec extends LeafExecNode with CodegenSupport {
 }
 
 /**
-  * Pluggable interface, allowing applications to add custom filtration logic,
-  * reducing the files required to scan during query execution. The filtration
-  * happens after the partition pruning step, and so complimentry enabling enabling
-  * a finer selection.
-  */
+ * Pluggable interface, allowing applications to add custom filtration logic,
+ * reducing the files required to scan during query execution. The filtration
+ * happens after the partition pruning step, and so complimentry enabling enabling
+ * a finer selection.
+ */
 trait ExecutionFileFilter {
   /**
-    *
-    * @param dataFilters query predicates for actual data columns (not partitions)
-    * @param f a FileStatus that exist in the file catalog
-    * @return true if the file needs to be scanned during execution
-    */
+   *
+   * @param dataFilters query predicates for actual data columns (not partitions)
+   * @param f a FileStatus that exist in the file catalog
+   * @return true if the file needs to be scanned during execution
+   */
   def isRequired(dataFilters: Seq[Filter], f: FileStatus) : Boolean
 }
 
@@ -183,7 +183,8 @@ case class FileSourceScanExec(
     prunedPartitions
   } else {
     logInfo(s"Execution file filter detected: $filterClazzName")
-    val fileFilter = Class.forName(filterClazzName).newInstance().asInstanceOf[ExecutionFileFilter]
+    val fileFilter = Utils.classForName(filterClazzName).newInstance()
+      .asInstanceOf[ExecutionFileFilter]
     val tmpFilteredPartitions = prunedPartitions.map { part =>
       PartitionDirectory(part.values, part.files.filter { f =>
         fileFilter.isRequired(dataFilters, f)
